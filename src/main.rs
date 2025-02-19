@@ -1,6 +1,6 @@
 use std::env;
 use dotenv::dotenv;
-use poise::serenity_prelude::{self as serenity, futures::channel, ChannelId, ChannelType, Context as SerenityContext, GuildChannel, GuildId, Http as SerenityHttp, MessageBuilder};
+use poise::serenity_prelude::{self as serenity, ChannelId, ChannelType, Context as SerenityContext, GuildChannel, GuildId, UserId, Http as SerenityHttp, MessageBuilder};
 use std::sync::Arc;
 use timer::Timer;
 
@@ -70,25 +70,49 @@ pub fn get_voice_channels(ctx: &SerenityContext, guild_id: GuildId) -> Vec<Guild
 
     voice_channels
 }
+
+pub fn get_all_active_voice_users(ctx: &SerenityContext, guild_id: GuildId) -> Vec<UserId> {
+    let voice_channels = get_voice_channels(ctx, guild_id);
+    let mut active_users = Vec::<UserId>::new();
+
+    for channel in voice_channels {
+        for member in channel.members(ctx.cache.clone()).unwrap() {
+            active_users.push(member.user.id);
+        }
+    }
+
+    active_users
+}
+
+pub fn build_posture_message(ctx: &SerenityContext, guild_id: GuildId) -> String {
+    let mut msg_builder = MessageBuilder::new();
+
+    for user_id in get_all_active_voice_users(&ctx, guild_id) {
+        msg_builder.mention(&user_id);
+        msg_builder.push(" ");
+    }
+
+    msg_builder.push("\n\nPOSTURE CHECK RIGHT NOW");
+
+    msg_builder.build()
+}
 /* END OF HELPERS */
 
 pub async fn posture_check_callout(ctx: &SerenityContext, http: &SerenityHttp) {
     let channel_id = get_env_posture_callout_channel();
+    let guild_id = get_env_guild_id();
 
-    if (is_voice_active(&ctx).await) {
-        let response = MessageBuilder::new()
-            //.push("@here") // TODO: Change this to get all users currently in voice channels
-            .push("\n\nPOSTURE CHECK RIGHT NOW")
-            .build();
+    if is_voice_active(&ctx, guild_id).await {
+        let message = build_posture_message(&ctx, guild_id);
     
-        if let Err(why) = channel_id.say(http, &response).await {
+        if let Err(why) = channel_id.say(http, &message).await {
             println!("Error sending message: {why:?}");
         }
     }
 }
 
-pub async fn is_voice_active(ctx: &SerenityContext) -> bool {
-    let voice_channels = get_voice_channels(&ctx, get_env_guild_id());
+pub async fn is_voice_active(ctx: &SerenityContext, guild_id: GuildId) -> bool {
+    let voice_channels = get_voice_channels(&ctx, guild_id);
 
     for channel in voice_channels {
         let active_members = channel.members(ctx).unwrap();
