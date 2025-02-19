@@ -51,6 +51,12 @@ pub fn get_env_guild_id() -> GuildId {
     GuildId::new(guild_id)
 }
 
+pub fn get_env_user_threshold() -> usize {
+    let user_threshold = env::var("USER_THRESHOLD").expect("missing USER_THRESHOLD in .env").parse::<usize>().unwrap();
+
+    user_threshold
+}
+
 pub fn get_voice_channels(ctx: &SerenityContext, guild_id: GuildId) -> Vec<GuildChannel> {
     let mut voice_channels = Vec::<GuildChannel>::new();
 
@@ -87,7 +93,7 @@ pub async fn is_voice_active(ctx: &SerenityContext) -> bool {
     for channel in voice_channels {
         let active_members = channel.members(ctx).unwrap();
         
-        if active_members.len() > 1 {
+        if active_members.len() > get_env_user_threshold() {
             return true;
         }
     }
