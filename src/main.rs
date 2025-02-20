@@ -1,10 +1,18 @@
-use std::env;
-use dotenv::dotenv;
+use std::{env, fs, sync::Arc};
 use poise::serenity_prelude::{self as serenity, ChannelId, ChannelType, Context as SerenityContext, GuildChannel, GuildId, UserId, Http as SerenityHttp, MessageBuilder};
-use std::sync::Arc;
 use timer::Timer;
+use serde::Deserialize;
 
 struct Data {} // User data, which is stored and accessible in all command invocations
+#[derive(Debug, Deserialize)]
+struct Config {
+    discord_token: String,
+    guild_id: u64,
+    callout_channel_id: u64,
+    message_phrases: Vec<String>,
+    timer: u64,
+    user_threshold: usize,
+}
 type Error = Box<dyn std::error::Error + Send + Sync>;
 type Context<'a> = poise::Context<'a, Data, Error>;
 
@@ -21,42 +29,16 @@ async fn cooldown(
 }
 
 pub async fn register_timer(ctx: SerenityContext, http: Arc<SerenityHttp>) -> Timer {
+    let timer = get_config().timer;
+
     loop {
-        tokio::time::sleep(tokio::time::Duration::from_secs(get_env_timer())).await; // Set timer from .env
+        tokio::time::sleep(tokio::time::Duration::from_secs(timer)).await; // Set timer from .env
         posture_check_callout(&ctx, &http).await;
     }
 }
 
 // TODO: Move to lib/separate crate
 /* HELPERS */
-pub fn get_env_timer() -> u64 {
-    // TODO: Read initial setting from env, register changes via application command, e.g. "/set_channel #lobby"
-    // FIX: Proper Error Handling - If unparsable, safely shutdown
-    let timer = env::var("TIMER").expect("missing TIMER in .env").parse::<u64>().unwrap();
-
-    timer
-}
-
-pub fn get_env_posture_callout_channel() -> ChannelId {
-    // TODO: Read initial setting from env, register changes via application command, e.g. "/set_channel #lobby"
-    // FIX: Proper Error Handling - If unparsable, safely shutdown
-    let channel_id = env::var("CHANNEL_ID").expect("missing CHANNEL_ID in .env").parse::<u64>().unwrap();
-
-    ChannelId::new(channel_id)
-}
-
-pub fn get_env_guild_id() -> GuildId {
-    let guild_id = env::var("GUILD_ID").expect("missing GUILD_ID in .env").parse::<u64>().unwrap();
-
-    GuildId::new(guild_id)
-}
-
-pub fn get_env_user_threshold() -> usize {
-    let user_threshold = env::var("USER_THRESHOLD").expect("missing USER_THRESHOLD in .env").parse::<usize>().unwrap();
-
-    user_threshold
-}
-
 pub fn get_voice_channels(ctx: &SerenityContext, guild_id: GuildId) -> Vec<GuildChannel> {
     let mut voice_channels = Vec::<GuildChannel>::new();
 
@@ -99,8 +81,8 @@ pub fn build_posture_message(ctx: &SerenityContext, guild_id: GuildId) -> String
 /* END OF HELPERS */
 
 pub async fn posture_check_callout(ctx: &SerenityContext, http: &SerenityHttp) {
-    let channel_id = get_env_posture_callout_channel();
-    let guild_id = get_env_guild_id();
+    let channel_id = ChannelId::new(get_config().callout_channel_id);
+    let guild_id = GuildId::new(get_config().guild_id);
 
     if is_voice_active(&ctx, guild_id).await {
         let message = build_posture_message(&ctx, guild_id);
@@ -117,7 +99,7 @@ pub async fn is_voice_active(ctx: &SerenityContext, guild_id: GuildId) -> bool {
     for channel in voice_channels {
         let active_members = channel.members(ctx).unwrap();
         
-        if active_members.len() > get_env_user_threshold() {
+        if active_members.len() > get_config().user_threshold {
             return true;
         }
     }
@@ -125,12 +107,18 @@ pub async fn is_voice_active(ctx: &SerenityContext, guild_id: GuildId) -> bool {
     return false;
 }
 
+fn get_config() -> Config {
+    let config_str = fs::read_to_string("./config.json").expect("Unable to read config file.");
+
+    serde_json::from_str(&config_str).expect("JSON was not well-formatted")
+}
+
 #[tokio::main]
 async fn main() {
     println!("Starting Posture Bot...");
-    println!("Fetching environment variables...");
-    dotenv().ok();
-    let token = env::var("DISCORD_TOKEN").expect("missing DISCORD_TOKEN in .env");
+    println!("Reading configuration...");
+
+    let token = get_config().discord_token;
     let intents = serenity::GatewayIntents::non_privileged();
 
     let framework = poise::Framework::builder()
@@ -139,7 +127,7 @@ async fn main() {
             ..Default::default()
         })
         .setup(|ctx, _ready, framework| {
-            println!("Running setup...");
+            println!("Setting up bot...");
             let http_clone = ctx.http.clone();
             let ctx_clone = ctx.clone();
             // Get Posture Check Timer
