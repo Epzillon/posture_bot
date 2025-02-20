@@ -1,5 +1,6 @@
 use std::{env, fs, sync::Arc};
 use poise::serenity_prelude::{self as serenity, ChannelId, ChannelType, Context as SerenityContext, GuildChannel, GuildId, UserId, Http as SerenityHttp, MessageBuilder};
+use rand::{seq::IndexedRandom, Rng};
 use timer::Timer;
 use serde::Deserialize;
 
@@ -66,6 +67,15 @@ pub fn get_all_active_voice_users(ctx: &SerenityContext, guild_id: GuildId) -> V
     active_users
 }
 
+fn get_random_posture_phrase() -> String {
+    let phrases = get_config().message_phrases;
+
+    let mut rng = rand::rng();
+    let max = rng.random_range(1..phrases.len()) - 1;
+
+    phrases[max].clone()
+}
+
 pub fn build_posture_message(ctx: &SerenityContext, guild_id: GuildId) -> String {
     let mut msg_builder = MessageBuilder::new();
 
@@ -74,7 +84,8 @@ pub fn build_posture_message(ctx: &SerenityContext, guild_id: GuildId) -> String
         msg_builder.push(" ");
     }
 
-    msg_builder.push("\n\nPOSTURE CHECK RIGHT NOW");
+    msg_builder.push("\n\n");
+    msg_builder.push(get_random_posture_phrase());
 
     msg_builder.build()
 }
