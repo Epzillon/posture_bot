@@ -1,5 +1,6 @@
 use poise::serenity_prelude::{self as serenity};
-use posture_bot::service::config::{self as ConfigService, SystemConfigTrait};
+use dotenv::dotenv;
+use std::env;
 use posture_bot::service::timer as TimerService;
 use posture_bot::service::commands as CommandsService;
 
@@ -10,8 +11,8 @@ async fn main() {
     println!("Reading configuration...");
 
     // Read config
-    let full_config = ConfigService::get_full_config();
-    let token = full_config.discord_token();
+    dotenv().ok();
+    let token = env::var("DISCORD_TOKEN").expect("missing DISCORD_TOKEN in .env");
     let intents = serenity::GatewayIntents::non_privileged();
 
     // Setup bot

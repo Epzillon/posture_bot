@@ -1,4 +1,4 @@
-use poise::serenity_prelude::{Context as SerenityContext, Http as SerenityHttp, GuildId, ChannelId, Member, GuildChannel, ChannelType};
+use poise::serenity_prelude::{ChannelId, ChannelType, Context as SerenityContext, GuildChannel, GuildId, Http as SerenityHttp, Member, Message, prelude::SerenityError};
 use crate::service::config::{self as ConfigService, SystemConfigTrait, AppConfigTrait};
 use crate::service::message as MessageService;
 
@@ -14,17 +14,17 @@ pub fn is_voice_active(ctx: &SerenityContext, guild_id: GuildId) -> bool {
 }
 
 /// Prepares and sends the posture check message
-pub async fn posture_check_callout(ctx: &SerenityContext, http: &SerenityHttp) {
+pub async fn posture_check_callout(ctx: &SerenityContext, http: &SerenityHttp) -> Option<Result<Message, SerenityError>> {
     let channel_id = ChannelId::new(*ConfigService::get_config().callout_channel_id());
     let guild_id = GuildId::new(*ConfigService::get_full_config().guild_id());
 
     if is_voice_active(&ctx, guild_id) {
         let message = MessageService::build_posture_message(&ctx, guild_id);
     
-        if let Err(why) = channel_id.say(http, &message).await {
-            println!("Error sending message: {why:?}");
-        }
+        return Some(channel_id.say(http, &message).await)
     }
+
+    None
 }
 
 /// Retrieves a list of all non-ignored members currently in voice chat
@@ -58,4 +58,12 @@ pub fn get_voice_channels(ctx: &SerenityContext, guild_id: GuildId) -> Vec<Guild
     }
 
     voice_channels
+}
+
+pub async fn delete_message(http: &SerenityHttp, message: Message) {
+    print!("Deleting message \"{}\" by author \"{}\" with ID \"{}\"...", message.content, message.author, message.id);
+
+    if let Err(why) = message.delete(http).await {
+        println!("Failed to delete message. Reason: {}", why);
+    }
 }

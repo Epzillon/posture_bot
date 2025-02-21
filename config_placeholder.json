@@ -1,12 +1,12 @@
 {
     "system_config": {
-        "discord_token": "your_discord_token_here",
         "guild_id": 1337
     },
     "app_config": {
         "callout_channel_id": 1337,
         "message_phrases": ["TIME TO STOP SHRIMPING!", "POSTURE CHECK RIGHT NOW!", "SHOW ME THAT BACK OF YOURS, NOW!", "GAMERS, RISE UP!"],
         "timer": 1800,
+        "cleanup_timer": 300,
         "user_threshold": 1,
         "ignore_list": []
     }

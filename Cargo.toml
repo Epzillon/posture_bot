@@ -9,6 +9,7 @@ edition = "2021"
 linker = "arm-linux-gnueabihf-gcc"
 
 [dependencies]
+dotenv = "0.15.0"
 poise = "0.6.1"
 rand = "0.9.0"
 serde = "1.0.217"
