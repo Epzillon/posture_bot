@@ -30,3 +30,12 @@ This is a list of current configuration options and their expected values:
 | timer                  | Number of seconds between callouts | Yes | 1800 (30min) | |
 | user_threshold         | Minimum amount of users in voice channels for the bot to send messages | Yes | 1 | |
 | ignore_list            | List of user IDs to skip mentioning | No | [] | Value still needs to exist but can be empty |
+
+## <a name="commands"></a>Commands
+
+These are the application commands available in the bot:
+
+|    Command     | Parameters |                         Description                        |
+|----------------|------------|------------------------------------------------------------|
+| /ignore_me     | None       | Toggles ignore status for the calling user                 |
+| /ignore_status | None       | Tells the calling user whether their current ignore status |
