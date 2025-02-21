@@ -1,5 +1,5 @@
 use poise::serenity_prelude::{Context as SerenityContext, Http as SerenityHttp, GuildId, ChannelId, UserId, GuildChannel, ChannelType};
-use crate::service::config as ConfigService;
+use crate::service::config::{self as ConfigService, SystemConfigTrait, AppConfigTrait};
 use crate::service::message as MessageService;
 
 pub async fn is_voice_active(ctx: &SerenityContext, guild_id: GuildId) -> bool {

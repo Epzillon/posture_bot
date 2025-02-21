@@ -1,6 +1,6 @@
 use poise::serenity_prelude::{Context as SerenityContext, GuildId, MessageBuilder};
 use rand::Rng;
-use crate::service::config as ConfigService;
+use crate::service::config::{self as ConfigService, AppConfigTrait};
 use crate::service::discord as DiscordService;
 
 fn get_random_posture_phrase() -> String {

@@ -1,9 +1,98 @@
+/// Config Service to handle configuration of the bot.
+/// 
+/// # Description
+/// Lots of structs and traits going on here so here's a summary:
+/// 
+/// The config.json contains two parts, the system configuration and the app configuration.
+/// 
+/// The System Configuration consists of necessary configuration for the bot to start and function properly.
+/// The App Configuration consists of general purpose configuration which determines how the bot runs,
+/// stuff such as message frequency (timer), user threshold, etc.
+/// 
+/// ## Structs
+/// The SystemConfig struct defines the structure of data within the "system_config", while the AppConfig
+/// struct defines the structure of the data within the "app_config".
+/// 
+/// The FullConfig struct represents the ENTIRE config.json, including the "system_config" while the
+/// Config struct omits the "system_config" portion
+/// 
+/// ## Traits
+/// Since this is a project for learning Rust I attempted to reduce code duplication and made two traits
+/// for the structs that will primarily be used in the fucntion (This idea came directly from previous
+/// OOP implementations based on inheritance). Actually making something like this required some
+/// macro rule definitions for easily implementing the traits for both structs.
+/// 
+/// impl_system_config_trait implements the SystemConfigTrait and defines where to get the relevant system config values.
+/// impl_app_config_trait implements the AppConfigTrait and defines where to get the relevant app config values.
+/// 
+/// These macros are used on the Config and FullConfig structs to automatically add the functionality of getting the relevant value for each key.
+/// 
+/// # Notes
+/// Does this ruin the purpose of deserializing the values with serde_json? Yes.
+/// Did this reduce the overall amount of code? No.
+/// Did this reduce code duplication? Kinda? Now we deal with implementing functions for each key instead, but that could have some advantages later...
+/// Did I learn something? Yes!
+/// Was it worth it? Ehhh, I guess
+
 use std::fs;
 use serde::Deserialize;
 
-/// Retrieves and deserializes the general purpose configurations from config.json
+macro_rules! impl_system_config_trait {
+    ($struct_name: ident) => {
+        impl SystemConfigTrait for $struct_name {
+            fn discord_token(&self) -> &String {
+                &self.system_config.discord_token
+            }
+            fn guild_id(&self) -> &u64 {
+                &self.system_config.guild_id
+            }
+        }
+    };
+}
+
+macro_rules! impl_app_config_trait {
+    ($struct_name: ident) => {
+        impl AppConfigTrait for $struct_name {
+            fn callout_channel_id(&self) -> &u64 {
+                &self.app_config.callout_channel_id
+            }
+            fn message_phrases(&self) -> &Vec<String> {
+                &self.app_config.message_phrases
+            }
+            fn timer(&self) -> &u64 {
+                &self.app_config.timer
+            }
+            fn user_threshold(&self) -> &usize {
+                &self.app_config.user_threshold
+            }
+        }
+    };
+}
+
+pub trait SystemConfigTrait {
+    fn discord_token(&self) -> &String;
+    fn guild_id(&self) -> &u64;
+}
+
+pub trait AppConfigTrait {
+    fn callout_channel_id(&self) -> &u64;
+    fn message_phrases(&self) -> &Vec<String>;
+    fn timer(&self) -> &u64;
+    fn user_threshold(&self) -> &usize;
+}
+
+/// The system configuration structure from config.js
 #[derive(Debug, Deserialize)]
-pub struct AppConfig {
+struct SystemConfig {
+    /// The Discord Bot Token
+    discord_token: String,
+    /// The current Discord Server Guild ID
+    guild_id: u64,
+}
+
+/// The application configuration structure from config.js
+#[derive(Debug, Deserialize)]
+struct AppConfig {
     /// Channel ID of channel to send posture check message in
     callout_channel_id: u64,
     /// Phrases used in the message
@@ -14,37 +103,26 @@ pub struct AppConfig {
     user_threshold: usize,
 }
 
-impl AppConfig {
-    pub fn callout_channel_id(&self) -> &u64 { &self.callout_channel_id }
-    pub fn message_phrases(&self) -> &Vec<String> { &self.message_phrases }
-    pub fn timer(&self) -> &u64 { &self.timer }
-    pub fn user_threshold(&self) -> &usize { &self.user_threshold }
-}
-
-
 /// Retrieves and deserializes the entire config.json file.
 ///
 /// Use discouraged outside of bot setup.
 #[derive(Debug, Deserialize)]
 pub struct FullConfig {
-    /// The Discord Bot Token
-    discord_token: String,
-    /// The Guild ID of the Discord Server
-    guild_id: u64,
-    callout_channel_id: u64,
-    message_phrases: Vec<String>,
-    timer: u64,
-    user_threshold: usize,
+    system_config: SystemConfig,
+    app_config: AppConfig,
 }
 
-impl FullConfig {
-    pub fn discord_token(&self) -> &String { &self.discord_token }
-    pub fn guild_id(&self) -> &u64 { &self.guild_id }
-    pub fn callout_channel_id(&self) -> &u64 { &self.callout_channel_id } // Look at getting default system message channel if null
-    pub fn message_phrases(&self) -> &Vec<String> { &self.message_phrases }
-    pub fn timer(&self) -> &u64 { &self.timer }
-    pub fn user_threshold(&self) -> &usize { &self.user_threshold }
+/// Retrieves and deserializes the general application configurations of the config.json file.
+#[derive(Debug, Deserialize)]
+pub struct Config {
+    app_config: AppConfig
 }
+
+// Implement default trait functionality
+impl_system_config_trait!(FullConfig);
+impl_app_config_trait!(FullConfig);
+impl_app_config_trait!(Config);
+
 
 /// Retrieves the entire current configuration.
 /// 
@@ -56,7 +134,7 @@ pub fn get_full_config() -> FullConfig {
 }
 
 /// Retrieves the current configuration
-pub fn get_config() -> AppConfig {
+pub fn get_config() -> Config {
     let config_str = fs::read_to_string("./config.json").expect("Unable to read config file.");
 
     serde_json::from_str(&config_str).expect("JSON was not well-formatted")

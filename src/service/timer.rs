@@ -1,7 +1,7 @@
 use poise::serenity_prelude::{Context as SerenityContext, Http as SerenityHttp};
 use timer::Timer;
 use std::sync::Arc;
-use crate::service::config as ConfigService;
+use crate::service::config::{self as ConfigService, AppConfigTrait};
 use crate::service::discord as DiscordService;
 
 pub async fn register_timer(ctx: SerenityContext, http: Arc<SerenityHttp>) -> Timer {

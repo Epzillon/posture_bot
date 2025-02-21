@@ -1,5 +1,5 @@
 use poise::serenity_prelude::{self as serenity};
-use posture_bot::service::config as ConfigService;
+use posture_bot::service::config::{self as ConfigService, SystemConfigTrait};
 use posture_bot::service::timer as TimerService;
 
 struct Data {} // User data, which is stored and accessible in all command invocations
