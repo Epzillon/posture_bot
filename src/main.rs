@@ -3,15 +3,18 @@ use posture_bot::service::config::{self as ConfigService, SystemConfigTrait};
 use posture_bot::service::timer as TimerService;
 use posture_bot::service::commands as CommandsService;
 
+/// Main function that starts up and configures the bot
 #[tokio::main]
 async fn main() {
     println!("Starting Posture Bot...");
     println!("Reading configuration...");
 
+    // Read config
     let full_config = ConfigService::get_full_config();
     let token = full_config.discord_token();
     let intents = serenity::GatewayIntents::non_privileged();
 
+    // Setup bot
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions {
             commands: vec![CommandsService::ignore_me(), CommandsService::ignore_status()],
@@ -35,6 +38,7 @@ async fn main() {
         .build();
 
 
+    // Start bot
     let client = serenity::ClientBuilder::new(token, intents)
         .framework(framework)
         .await;

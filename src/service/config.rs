@@ -167,6 +167,7 @@ pub fn ignore_user(user: User) -> bool {
     }
 }
 
+/// Checks whether a specified user is in the list of ignored users
 pub fn is_ignored(user: &User) -> bool {
     let user_id = user.id.get();
 
@@ -201,8 +202,10 @@ pub fn get_sys_config() -> SysConfig {
 }
 
 /// Updates the config.json and returns the new config or fucking explodes or something idk
+/// 
+/// TODO: Make sure this does not explode when multiple people are calling, aka is thread safe
 fn update_app_config(full_config: FullConfig) -> Result<FullConfig, Box<dyn Error>> {
-    let json_data = serde_json::to_string(&full_config)?;
+    let json_data = serde_json::to_string_pretty(&full_config)?;
     
     let mut file = File::create("config.json")?;
     file.write_all(json_data.as_bytes())?;
