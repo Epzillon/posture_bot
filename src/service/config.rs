@@ -43,6 +43,9 @@ use serde::{Deserialize, Serialize};
 macro_rules! impl_system_config_trait {
     ($struct_name: ident) => {
         impl SystemConfigTrait for $struct_name {
+            fn dev_mode(&self) -> &bool {
+                &self.system_config.dev_mode
+            }
             fn discord_token(&self) -> &String {
                 &self.system_config.discord_token
             }
@@ -65,6 +68,9 @@ macro_rules! impl_app_config_trait {
             fn timer(&self) -> &u64 {
                 &self.app_config.timer
             }
+            fn cleanup_timer(&self) -> &u64 {
+                &self.app_config.cleanup_timer
+            }
             fn user_threshold(&self) -> &usize {
                 &self.app_config.user_threshold
             }
@@ -82,6 +88,7 @@ macro_rules! impl_app_config_trait {
 }
 
 pub trait SystemConfigTrait {
+    fn dev_mode(&self) -> &bool;
     fn discord_token(&self) -> &String;
     fn guild_id(&self) -> &u64;
 }
@@ -90,6 +97,7 @@ pub trait AppConfigTrait {
     fn callout_channel_id(&self) -> &u64;
     fn message_phrases(&self) -> &Vec<String>;
     fn timer(&self) -> &u64;
+    fn cleanup_timer(&self) -> &u64;
     fn user_threshold(&self) -> &usize;
     fn ignore_list(&self) -> &Vec<u64>;
     fn ignore_list_add(&mut self, user_id: u64);
@@ -99,6 +107,8 @@ pub trait AppConfigTrait {
 /// The system configuration structure from config.js
 #[derive(Debug, Serialize, Deserialize)]
 struct SystemConfig {
+    /// Whether dev mode is turned on or not
+    dev_mode: bool,
     /// The Discord Bot Token
     discord_token: String,
     /// The current Discord Server Guild ID
@@ -114,6 +124,8 @@ struct AppConfig {
     message_phrases: Vec<String>,
     /// Timer in seconds between sent messages
     timer: u64,
+    /// Timer in seconds after which to delete sent messages
+    cleanup_timer: u64,
     /// Minimum threshold of active users to exceed before sending message
     user_threshold: usize,
     /// List of users being ignored by the bot
