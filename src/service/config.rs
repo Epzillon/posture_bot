@@ -133,7 +133,7 @@ impl_app_config_trait!(Config);
 
 /// Retrieves the entire current configuration.
 /// 
-/// Use discouraged, see get_config().
+/// Use discouraged, see get_config() and get_sys_config().
 pub fn get_full_config() -> FullConfig {
     let config_str = fs::read_to_string("./config.json").expect("Unable to read config file.");
 
