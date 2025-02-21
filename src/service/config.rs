@@ -118,9 +118,16 @@ pub struct Config {
     app_config: AppConfig
 }
 
+/// Retrieves and deserializes the general application configurations of the config.json file.
+#[derive(Debug, Deserialize)]
+pub struct SysConfig {
+    system_config: SystemConfig
+}
+
 // Implement default trait functionality
 impl_system_config_trait!(FullConfig);
 impl_app_config_trait!(FullConfig);
+impl_system_config_trait!(SysConfig);
 impl_app_config_trait!(Config);
 
 
@@ -135,6 +142,13 @@ pub fn get_full_config() -> FullConfig {
 
 /// Retrieves the current configuration
 pub fn get_config() -> Config {
+    let config_str = fs::read_to_string("./config.json").expect("Unable to read config file.");
+
+    serde_json::from_str(&config_str).expect("JSON was not well-formatted")
+}
+
+/// Retrieves the current system configuration
+pub fn get_sys_config() -> SysConfig {
     let config_str = fs::read_to_string("./config.json").expect("Unable to read config file.");
 
     serde_json::from_str(&config_str).expect("JSON was not well-formatted")
