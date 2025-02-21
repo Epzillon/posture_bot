@@ -6,7 +6,10 @@ pub async fn is_voice_active(ctx: &SerenityContext, guild_id: GuildId) -> bool {
     let voice_channels = get_voice_channels(&ctx, guild_id);
 
     for channel in voice_channels {
-        let active_members = channel.members(ctx).unwrap();
+        let mut active_members = channel.members(ctx).unwrap();
+
+        // Get active members excluding the ones in the exlude list
+        active_members.retain(|member| !ConfigService::get_config().ignore_list().contains(&member.user.id.get()));
         
         if active_members.len() > *ConfigService::get_config().user_threshold() {
             return true;

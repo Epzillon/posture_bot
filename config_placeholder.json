@@ -7,6 +7,7 @@
         "callout_channel_id": 1337,
         "message_phrases": ["TIME TO STOP SHRIMPING!", "POSTURE CHECK RIGHT NOW!", "SHOW ME THAT BACK OF YOURS, NOW!", "GAMERS, RISE UP!"],
         "timer": 1800,
-        "user_threshold": 1
+        "user_threshold": 1,
+        "ignore_list": []
     }
 }

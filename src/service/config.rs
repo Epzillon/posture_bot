@@ -34,8 +34,11 @@
 /// Did I learn something? Yes!
 /// Was it worth it? Ehhh, I guess
 
-use std::fs;
-use serde::Deserialize;
+use std::fs::{self, File};
+use std::io::Write;
+use std::error::Error;
+use poise::serenity_prelude::User;
+use serde::{Deserialize, Serialize};
 
 macro_rules! impl_system_config_trait {
     ($struct_name: ident) => {
@@ -65,6 +68,15 @@ macro_rules! impl_app_config_trait {
             fn user_threshold(&self) -> &usize {
                 &self.app_config.user_threshold
             }
+            fn ignore_list(&self) -> &Vec<u64> {
+                &self.app_config.ignore_list
+            }
+            fn ignore_list_add(&mut self, user_id: u64) {
+                self.app_config.ignore_list.push(user_id);
+            }
+            fn ignore_list_remove(&mut self, user_id: u64) {
+                self.app_config.ignore_list.retain(|&user| user != user_id);
+            }
         }
     };
 }
@@ -79,10 +91,13 @@ pub trait AppConfigTrait {
     fn message_phrases(&self) -> &Vec<String>;
     fn timer(&self) -> &u64;
     fn user_threshold(&self) -> &usize;
+    fn ignore_list(&self) -> &Vec<u64>;
+    fn ignore_list_add(&mut self, user_id: u64);
+    fn ignore_list_remove(&mut self, user_id: u64);
 }
 
 /// The system configuration structure from config.js
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 struct SystemConfig {
     /// The Discord Bot Token
     discord_token: String,
@@ -91,7 +106,7 @@ struct SystemConfig {
 }
 
 /// The application configuration structure from config.js
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 struct AppConfig {
     /// Channel ID of channel to send posture check message in
     callout_channel_id: u64,
@@ -101,12 +116,14 @@ struct AppConfig {
     timer: u64,
     /// Minimum threshold of active users to exceed before sending message
     user_threshold: usize,
+    /// List of users being ignored by the bot
+    ignore_list: Vec<u64>,
 }
 
 /// Retrieves and deserializes the entire config.json file.
 ///
 /// Use discouraged outside of bot setup.
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct FullConfig {
     system_config: SystemConfig,
     app_config: AppConfig,
@@ -130,6 +147,35 @@ impl_app_config_trait!(FullConfig);
 impl_system_config_trait!(SysConfig);
 impl_app_config_trait!(Config);
 
+/// Toggles ignore status for a user, returns true if the user is now ignored or false if the user is no longer being ignored
+pub fn ignore_user(user: User) -> bool {
+    let user_id = user.id.get();
+    let mut config = get_full_config();
+
+    if is_ignored(&user) {
+        config.ignore_list_remove(user_id);
+
+        let _ = update_app_config(config);
+
+        return false;
+    } else {
+        config.ignore_list_add(user_id);
+
+        let _ = update_app_config(config);
+
+        return true;
+    }
+}
+
+pub fn is_ignored(user: &User) -> bool {
+    let user_id = user.id.get();
+
+    if get_full_config().ignore_list().contains(&user_id) {
+        return true;
+    }
+
+    false
+}
 
 /// Retrieves the entire current configuration.
 /// 
@@ -152,4 +198,15 @@ pub fn get_sys_config() -> SysConfig {
     let config_str = fs::read_to_string("./config.json").expect("Unable to read config file.");
 
     serde_json::from_str(&config_str).expect("JSON was not well-formatted")
+}
+
+/// Updates the config.json and returns the new config or fucking explodes or something idk
+fn update_app_config(full_config: FullConfig) -> Result<FullConfig, Box<dyn Error>> {
+    let json_data = serde_json::to_string(&full_config)?;
+    
+    let mut file = File::create("config.json")?;
+    file.write_all(json_data.as_bytes())?;
+
+    println!("Successfully updated config!");
+    Ok(full_config)
 }

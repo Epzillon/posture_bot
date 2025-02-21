@@ -17,8 +17,10 @@ pub fn build_posture_message(ctx: &SerenityContext, guild_id: GuildId) -> String
     let mut msg_builder = MessageBuilder::new();
 
     for user_id in DiscordService::get_all_active_voice_users(&ctx, guild_id) {
-        msg_builder.mention(&user_id);
-        msg_builder.push(" ");
+        if !ConfigService::get_config().ignore_list().contains(&user_id.get()) {
+            msg_builder.mention(&user_id);
+            msg_builder.push(" ");
+        }
     }
 
     msg_builder.push("\n\n");

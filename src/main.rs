@@ -1,22 +1,7 @@
 use poise::serenity_prelude::{self as serenity};
 use posture_bot::service::config::{self as ConfigService, SystemConfigTrait};
 use posture_bot::service::timer as TimerService;
-
-struct Data {} // User data, which is stored and accessible in all command invocations
-type Error = Box<dyn std::error::Error + Send + Sync>;
-type Context<'a> = poise::Context<'a, Data, Error>;
-
-
-/// Retrieves cooldown until next posture check
-#[poise::command(slash_command)]
-async fn cooldown(
-    ctx: Context<'_>,
-) -> Result<(), Error> {
-
-    let response = format!("This is currently WIP...");
-    ctx.say(response).await?;
-    Ok(())
-}
+use posture_bot::service::commands as CommandsService;
 
 #[tokio::main]
 async fn main() {
@@ -29,7 +14,7 @@ async fn main() {
 
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions {
-            commands: vec![cooldown()],
+            commands: vec![CommandsService::ignore_me(), CommandsService::ignore_status()],
             ..Default::default()
         })
         .setup(|ctx, _ready, framework| {
@@ -44,7 +29,7 @@ async fn main() {
             println!("Posture Bot is up and running!");
             Box::pin(async move {
                 poise::builtins::register_globally(ctx, &framework.options().commands).await?;
-                Ok(Data {})
+                Ok(CommandsService::Data {})
             })
         })
         .build();
