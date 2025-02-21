@@ -37,23 +37,18 @@
 use std::fs::{self, File};
 use std::io::Write;
 use std::error::Error;
+use std::env;
 use poise::serenity_prelude::User;
 use serde::{Deserialize, Serialize};
 
 macro_rules! impl_system_config_trait {
     ($struct_name: ident) => {
         impl SystemConfigTrait for $struct_name {
-            fn dev_mode(&self) -> &bool {
-                &self.system_config.dev_mode
-            }
-            fn discord_token(&self) -> &String {
-                &self.system_config.discord_token
-            }
             fn guild_id(&self) -> &u64 {
                 &self.system_config.guild_id
             }
         }
-    };
+    }
 }
 
 macro_rules! impl_app_config_trait {
@@ -84,12 +79,10 @@ macro_rules! impl_app_config_trait {
                 self.app_config.ignore_list.retain(|&user| user != user_id);
             }
         }
-    };
+    }
 }
 
 pub trait SystemConfigTrait {
-    fn dev_mode(&self) -> &bool;
-    fn discord_token(&self) -> &String;
     fn guild_id(&self) -> &u64;
 }
 
@@ -107,10 +100,6 @@ pub trait AppConfigTrait {
 /// The system configuration structure from config.js
 #[derive(Debug, Serialize, Deserialize)]
 struct SystemConfig {
-    /// Whether dev mode is turned on or not
-    dev_mode: bool,
-    /// The Discord Bot Token
-    discord_token: String,
     /// The current Discord Server Guild ID
     guild_id: u64,
 }
@@ -190,25 +179,39 @@ pub fn is_ignored(user: &User) -> bool {
     false
 }
 
+fn get_config_path() -> String {
+    let environment = env::var("ENVIRONMENT").expect("missing ENVIRONMENT in .env");
+
+    if environment == "PRODUCTION" {
+        return String::from("./config.json");
+    } else if environment == "STAGING" {
+        return String::from("./config.staging.json")
+    } else if environment == "DEV" {
+        return String::from("./config.dev.json")
+    }
+
+    panic!("No valid environment defined in .env");
+}
+
 /// Retrieves the entire current configuration.
 /// 
 /// Use discouraged, see get_config() and get_sys_config().
 pub fn get_full_config() -> FullConfig {
-    let config_str = fs::read_to_string("./config.json").expect("Unable to read config file.");
+    let config_str = fs::read_to_string(get_config_path()).expect("Unable to read config file.");
 
     serde_json::from_str(&config_str).expect("JSON was not well-formatted")
 }
 
 /// Retrieves the current configuration
 pub fn get_config() -> Config {
-    let config_str = fs::read_to_string("./config.json").expect("Unable to read config file.");
+    let config_str = fs::read_to_string(get_config_path()).expect("Unable to read config file.");
 
     serde_json::from_str(&config_str).expect("JSON was not well-formatted")
 }
 
 /// Retrieves the current system configuration
 pub fn get_sys_config() -> SysConfig {
-    let config_str = fs::read_to_string("./config.json").expect("Unable to read config file.");
+    let config_str = fs::read_to_string(get_config_path()).expect("Unable to read config file.");
 
     serde_json::from_str(&config_str).expect("JSON was not well-formatted")
 }
@@ -219,7 +222,7 @@ pub fn get_sys_config() -> SysConfig {
 fn update_app_config(full_config: FullConfig) -> Result<FullConfig, Box<dyn Error>> {
     let json_data = serde_json::to_string_pretty(&full_config)?;
     
-    let mut file = File::create("config.json")?;
+    let mut file = File::create(get_config_path())?;
     file.write_all(json_data.as_bytes())?;
 
     println!("Successfully updated config!");

@@ -1,4 +1,6 @@
 /target
 .env
 config.json
+config.staging.json
+config.dev.json
 *.bak

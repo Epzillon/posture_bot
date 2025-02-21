@@ -1,7 +1,5 @@
 {
     "system_config": {
-        "dev_mode": false,
-        "discord_token": "your_discord_token_here",
         "guild_id": 1337
     },
     "app_config": {
