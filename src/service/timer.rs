@@ -6,8 +6,7 @@ use crate::service::discord as DiscordService;
 // Creates and returns a timer that sleeps for a configured amount and then runs the posture check callout
 pub async fn register_timer(ctx: SerenityContext, http: Arc<SerenityHttp>) {
     let timer_dur = *ConfigService::get_config().timer();
-    //let cleanup_timer_dur = *ConfigService::get_config().cleanup_timer();
-    let cleanup_timer_dur = 5; // 5min
+    let cleanup_timer_dur = *ConfigService::get_config().cleanup_timer();
 
     loop {
         tokio::time::sleep(tokio::time::Duration::from_secs(timer_dur)).await; // Set timer from .env
